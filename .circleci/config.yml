@@ -2,6 +2,26 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
+commands:
+  delete_stack:
+    description: Delete AWS stack created in create_infrastructure job
+    parameters:
+      stackId:
+        type: string
+    steps:
+      - run:
+          name: Delete Stack
+          command: aws cloudformation delete-stack --stack-name << parameters.stackId >>
+  restore_variable:
+    description: Save contents of file into environment variable
+    parameters:
+      filePath:
+        type: string
+      variableName:
+        type: string
+    steps:
+      - run: << parameters.variableName >>=$(cat << parameters.filePath >>)
+
 jobs:
   create_infrastructure:
     docker:
@@ -15,8 +35,60 @@ jobs:
               --template-file template.yml \
               --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
               --region us-east-1
+      - run:
+          name: Save StackID to file
+          command: echo "myStack-${CIRCLE_WORKFLOW_ID:0:5}" > stack_name.txt
+      - save_cache:
+          key: stack_name
+          paths:
+            - ./stack_name.txt
+      - run:
+          name: Wait for stack to be created and instance spun up
+          command: sleep 1m
+
+  create_inventory:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - restore_cache:
+          key: stack_name
+      - restore_variable:
+          filePath: ./stack_name.txt
+          variableName: STACK_NAME
+      - run:
+          name: Create inventory file
+          command: echo "[all]" > inventory
+      - run:
+          name: Insert EC2 IP into inventory
+          command: aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory
+      - run:
+          name: check if there is IP in inventory
+          command: "[ $(cat inventory | wc -l) == '2' ]"
+      - delete_stack:
+          stackId: ${STACK_NAME}
+          when: on_fail
+      - save_cache:
+          key: inventory
+          paths:
+            - ./inventory
+
+
+      # - add_ssh_keys:
+      #     fingerprints: [$AWS_SSH_FINGERPRINT]
+      # - run:
+      #     name: Install Ansible
+      #     command: |
+      #       apk add --update ansible
+      # - run:
+      #     name: Run Playbook and Configure server
+      #     command: |
+      #       ansible-playbook -i [inventory-file] [playbook-file]
+
 
 workflows:
   my_workflow:
     jobs:
       - create_infrastructure
+      - create_inventory:
+          requires: [create_infrastructure]
