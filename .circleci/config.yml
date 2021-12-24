@@ -48,7 +48,6 @@ jobs:
       - run:
           name: check if there is IP in inventory
           command: "[ $(cat inventory | wc -l) != '1' ]"
-      - run: 'false'
       - delete_stack
       - persist_to_workspace:
           root: .
