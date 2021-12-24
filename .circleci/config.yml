@@ -97,7 +97,7 @@ jobs:
           command: |
             IP=$(cat inventory | sed -n '2 p')
             curl http://$IP:3000
-      - delete_stack
+      # - delete_stack
 
 
 workflows:
