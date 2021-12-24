@@ -9,6 +9,10 @@ commands:
       - run:
           name: Install tar utility
           command: yum install -y tar gzip
+  delete_stack:
+    description: delete created stack on failure
+    steps:
+      - run: aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID}
 
 jobs:
   create_infrastructure:
@@ -18,14 +22,11 @@ jobs:
       - checkout
       - install_tar_gzip
       - run:
-          name: Save StackID to file
-          command: echo "myStack-${CIRCLE_WORKFLOW_ID:0:5}" > stack_name.txt
-      - run:
           name: Create Cloudformation Stack
           command: >
             aws cloudformation deploy
             --template-file template.yml
-            --stack-name $(cat stack_name.txt)
+            --stack-name myStack-${CIRCLE_WORKFLOW_ID}
             --region us-east-1
       - run:
           name: Create inventory file
@@ -36,20 +37,17 @@ jobs:
             aws ec2 describe-instances
             --query 'Reservations[*].Instances[*].PublicIpAddress'
             --filters "Name=tag-key,Values=aws:cloudformation:stack-name"
-            "Name=tag-value,Values=$(cat stack_name.txt)"
+            "Name=tag-value,Values=myStack-${CIRCLE_WORKFLOW_ID}"
             --output text >> inventory
       - run:
           name: check if there is IP in inventory
           command: "[ $(cat inventory | wc -l) != '1' ]"
-      - run:
-          name: delete aws stack if no ips in inventory
-          command: aws cloudformation delete-stack --stack-name $(cat stack_name.txt)
-          when: on_fail
+      - delete_stack
+        when: on_fail
       - persist_to_workspace:
           root: .
           paths:
             - inventory
-            - stack_name.txt
 
   configure_infrastructure:
     docker:
@@ -66,10 +64,8 @@ jobs:
       - run:
           name: Run Playbook and Configure server
           command: ansible-playbook -i inventory my-main.yml
-      - run:
-          name: delete aws stack if no ips in inventory
-          command: aws cloudformation delete-stack --stack-name $(cat stack_name.txt)
-          when: on_fail
+      - delete_stack
+        when: on_fail
 
   smoke_test:
     docker:
@@ -92,7 +88,7 @@ jobs:
 workflows:
   my_workflow:
     jobs:
-      # - create_infrastructure
-      # - configure_infrastructure:
-          # requires: [create_infrastructure]
-      - smoke_test
+      - create_infrastructure
+      - configure_infrastructure:
+          requires: [create_infrastructure]
+      # - smoke_test
