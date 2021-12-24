@@ -65,8 +65,9 @@ jobs:
       - run:
           name: check if there is IP in inventory
           command: "[ $(cat inventory | wc -l) == '2' ]"
-      - delete_stack:
-          stackId: ${STACK_NAME}
+      - run:
+          name: delete aws stack if no ips in inventory
+          command: aws cloudformation delete-stack --stack-name ${STACK_NAME}
           when: on_fail
       - save_cache:
           key: inventory
