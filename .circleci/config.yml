@@ -79,17 +79,24 @@ jobs:
 
   smoke_test:
     docker:
-      - image: python:3.7
+      - image: amazon/aws-cli
     steps:
-      - checkout
-      - update_apt
+      - install_tar_gzip
+      - attach_workspace:
+          at: .
       - run:
           name: Install curl
-          command: apt install -y curl
+          command: yum install -y curl
+      # - run:
+      #     name: recreate inventory
+      #     command: |
+      #       echo "[all]" > inventory
+      #       echo ""
       - run:
-          name: smoke test
+          name: Smoke Test/ curl IP of website
           command: |
-            return 1
+            URL=$(cat inventory | sed -n '2 p')
+            curl http://URL:3000
       - delete_stack
 
 
