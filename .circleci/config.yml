@@ -13,7 +13,8 @@ commands:
     description: delete created stack on failure
     steps:
       - run:
-          command: apk && apk add --update awscli
+          name: Install AWSCli on alpine instances
+          command: apk add --update awscli
           when: on_fail
       - run:
           name: Delete stack only if command before failed
@@ -75,18 +76,14 @@ jobs:
     docker:
       - image: alpine:latest
     steps:
-      - run: apk add --update curl
+      - run:
+          name: Install curl
+          command: apk add --update curl
       - run:
           name: smoke test
           command: |
-            URL="https://blog.udacitydasfdsafsadfsadf.com/"
-            # Test if website exists
-            if curl -s --head ${URL}
-            then
-              return 0
-            else
-              return 1
-            fi
+            return 1
+      - delete_stack
 
 
 workflows:
@@ -95,4 +92,5 @@ workflows:
       - create_infrastructure
       - configure_infrastructure:
           requires: [create_infrastructure]
-      # - smoke_test
+      - smoke_test:
+          requires: [configure_infrastructure]
