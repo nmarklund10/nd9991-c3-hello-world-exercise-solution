@@ -44,13 +44,17 @@ jobs:
             - ./stack_name.txt
       - run:
           name: Wait for stack to be created and instance spun up
-          command: sleep 1m
+          command: sleep 30
 
   create_inventory:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - run:
+          name: Install tar utility
+          command: |
+            yum install -y tar gzip
       - restore_cache:
           key: stack_name
       - restore_variable:
