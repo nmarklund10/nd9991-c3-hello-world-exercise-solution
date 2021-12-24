@@ -17,7 +17,7 @@ commands:
     description: delete created stack on failure
     steps:
       - run:
-          name: Install AWSCli on alpine instances
+          name: Install AWSCli on non amazon instances
           command: apt install -y awscli
           when: on_fail
       - run:
@@ -71,7 +71,7 @@ jobs:
       - update_apt
       - run:
           name: Install Ansible
-          command: pip install ansible -y
+          command: apt install ansible -y
       - run:
           name: Run Playbook and Configure server
           command: ansible-playbook -i inventory my-main.yml
