@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: ND9991 C3 L4
 Resources:
   EC2Instance:
-    Type: 'AWS::EC2::Instance'
+    Type: AWS::EC2::Instance
     Properties:
       SecurityGroups:
         - !Ref InstanceSecurityGroup
@@ -11,11 +11,20 @@ Resources:
       ImageId: 'ami-04505e74c0741db8d' # you may need to find out what instance types are available in your region - use https://cloud-images.ubuntu.com/locator/ec2/
       InstanceType: t3.micro
   InstanceSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Enable SSH access via port 22
+      GroupDescription: Enable ssh access and port 3000 access
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
           CidrIp: 0.0.0.0/0
