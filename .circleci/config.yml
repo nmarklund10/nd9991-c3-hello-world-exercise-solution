@@ -49,18 +49,6 @@ jobs:
       - install_tar_gzip
       - attach_workspace:
           at: .
-      - restore_variable:
-          filePath: stack_name.txt
-          variableName: STACK_NAME
-      - run:
-          name: human sanity check files
-          command: cat stack_name.txt
-      - run:
-          name: Human sanity check $STACK_NAME
-          command: STACK_NAME=$(cat stack_name.txt)
-      - run:
-          name: Human sanity check $STACK_NAME
-          command: echo $STACK_NAME
       - run:
           name: Create inventory file
           command: echo "[all]" > inventory
@@ -70,7 +58,7 @@ jobs:
             aws ec2 describe-instances
             --query 'Reservations[*].Instances[*].PublicIpAddress'
             --filters "Name=tag-key,Values=aws:cloudformation:stack-name"
-            "Name=tag-value,Values=$STACK_NAME"
+            "Name=tag-value,Values=$(cat stack_name.txt)"
             --output text >> inventory
       - run:
           name: check if there is IP in inventory
@@ -80,7 +68,7 @@ jobs:
           command: cat inventory
       - run:
           name: delete aws stack if no ips in inventory
-          command: aws cloudformation delete-stack --stack-name $STACK_NAME
+          command: aws cloudformation delete-stack --stack-name $(cat stack_name.txt)
           when: on_fail
       - persist_to_workspace:
           root: .
