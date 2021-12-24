@@ -11,7 +11,7 @@ commands:
       variableName:
         type: string
     steps:
-      - run: << parameters.variableName >>=$(cat << parameters.filePath >>)
+      - run: export << parameters.variableName >>=$(cat << parameters.filePath >>)
 
 jobs:
   create_infrastructure:
@@ -33,9 +33,6 @@ jobs:
           key: stack_name
           paths:
             - ./stack_name.txt
-      - run:
-          name: Wait for stack to be created and instance spun up
-          command: sleep 30
 
   create_inventory:
     docker:
@@ -52,6 +49,9 @@ jobs:
           filePath: ./stack_name.txt
           variableName: STACK_NAME
       - run:
+          name: Human sanity check $STACK_NAME
+          command: "echo ${STACK_NAME}"
+      - run:
           name: Create inventory file
           command: echo "[all]" > inventory
       - run:
@@ -64,7 +64,7 @@ jobs:
             --output text >> inventory
       - run:
           name: check if there is IP in inventory
-          command: "[ $(cat inventory | wc -l) == '2' ]"
+          command: "[ $(cat inventory | wc -l) != '1' ]"
       - run:
           name: Human sanity check on inventory
           command: cat inventory
