@@ -13,6 +13,9 @@ commands:
     description: delete created stack on failure
     steps:
       - run:
+          command: apk && apk add --update awscli
+          when: on_fail
+      - run:
           name: Delete stack only if command before failed
           command: aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID}
           when: on_fail
@@ -45,6 +48,7 @@ jobs:
       - run:
           name: check if there is IP in inventory
           command: "[ $(cat inventory | wc -l) != '1' ]"
+      - run: 'false'
       - delete_stack
       - persist_to_workspace:
           root: .
