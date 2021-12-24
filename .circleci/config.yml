@@ -18,28 +18,15 @@ jobs:
       - checkout
       - install_tar_gzip
       - run:
+          name: Save StackID to file
+          command: echo "myStack-${CIRCLE_WORKFLOW_ID:0:5}" > stack_name.txt
+      - run:
           name: Create Cloudformation Stack
           command: >
             aws cloudformation deploy
             --template-file template.yml
-            --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
+            --stack-name $(cat stack_name.txt)
             --region us-east-1
-      - run:
-          name: Save StackID to file
-          command: echo "myStack-${CIRCLE_WORKFLOW_ID:0:5}" > stack_name.txt
-      - persist_to_workspace:
-          root: .
-          paths:
-            - stack_name.txt
-
-  create_inventory:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - install_tar_gzip
-      - attach_workspace:
-          at: .
       - run:
           name: Create inventory file
           command: echo "[all]" > inventory
@@ -79,13 +66,15 @@ jobs:
       - run:
           name: Run Playbook and Configure server
           command: ansible-playbook -i inventory my-main.yml
+      - run:
+          name: delete aws stack if no ips in inventory
+          command: aws cloudformation delete-stack --stack-name $(cat stack_name.txt)
+          when: on_fail
 
 
 workflows:
   my_workflow:
     jobs:
       - create_infrastructure
-      - create_inventory:
-          requires: [create_infrastructure]
       - configure_infrastructure:
-          requires: [create_inventory]
+          requires: [create_infrastructure]
