@@ -50,7 +50,7 @@ jobs:
           variableName: STACK_NAME
       - run:
           name: Human sanity check $STACK_NAME
-          command: "echo ${STACK_NAME}"
+          command: "echo $STACK_NAME"
       - run:
           name: Create inventory file
           command: echo "[all]" > inventory
@@ -60,7 +60,7 @@ jobs:
             aws ec2 describe-instances
             --query 'Reservations[*].Instances[*].PublicIpAddress'
             --filters "Name=tag-key,Values=aws:cloudformation:stack-name"
-            "Name=tag-value,Values=${STACK_NAME}"
+            "Name=tag-value,Values=$STACK_NAME"
             --output text >> inventory
       - run:
           name: check if there is IP in inventory
@@ -70,7 +70,7 @@ jobs:
           command: cat inventory
       - run:
           name: delete aws stack if no ips in inventory
-          command: aws cloudformation delete-stack --stack-name ${STACK_NAME}
+          command: aws cloudformation delete-stack --stack-name $STACK_NAME
           when: on_fail
       - save_cache:
           key: inventory
