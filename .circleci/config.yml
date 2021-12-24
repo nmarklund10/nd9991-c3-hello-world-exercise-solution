@@ -9,15 +9,6 @@ commands:
       - run:
           name: Install tar utility
           command: yum install -y tar gzip
-  restore_variable:
-    description: Save contents of file into environment variable
-    parameters:
-      filePath:
-        type: string
-      variableName:
-        type: string
-    steps:
-      - run: export << parameters.variableName >>=$(cat << parameters.filePath >>)
 
 jobs:
   create_infrastructure:
@@ -63,7 +54,6 @@ jobs:
       - run:
           name: check if there is IP in inventory
           command: "[ $(cat inventory | wc -l) != '1' ]"
-      - run: 'false'
       - run:
           name: delete aws stack if no ips in inventory
           command: aws cloudformation delete-stack --stack-name $(cat stack_name.txt)
@@ -74,17 +64,21 @@ jobs:
             - inventory
             - stack_name.txt
 
-  # install_ansible:
-      # - add_ssh_keys:
-      #     fingerprints: [$AWS_SSH_FINGERPRINT]
-      # - run:
-      #     name: Install Ansible
-      #     command: |
-      #       apk add --update ansible
-      # - run:
-      #     name: Run Playbook and Configure server
-      #     command: |
-      #       ansible-playbook -i [inventory-file] [playbook-file]
+  configure_infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - add_ssh_keys:
+          fingerprints: [$AWS_SSH_FINGERPRINT]
+      - run:
+          name: Install Ansible
+          command: apk add --update ansible
+      - run:
+          name: Run Playbook and Configure server
+          command: ansible-playbook -i inventory my-main.yml
 
 
 workflows:
