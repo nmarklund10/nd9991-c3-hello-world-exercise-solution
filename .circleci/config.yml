@@ -57,10 +57,10 @@ jobs:
           command: cat stack_name.txt
       - run:
           name: Human sanity check $STACK_NAME
-          command: export STACK_NAME=$(cat stack_name.txt)
+          command: STACK_NAME=$(cat stack_name.txt)
       - run:
           name: Human sanity check $STACK_NAME
-          command: "echo $STACK_NAME"
+          command: echo $STACK_NAME
       - run:
           name: Create inventory file
           command: echo "[all]" > inventory
