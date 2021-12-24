@@ -13,6 +13,10 @@ commands:
     steps:
       - run: export << parameters.variableName >>=$(cat << parameters.filePath >>)
 
+default_working_dir: &default_working_dir
+  working_directory: ./workspace
+
+
 jobs:
   create_infrastructure:
     docker:
@@ -21,18 +25,18 @@ jobs:
       - checkout
       - run:
           name: Create Cloudformation Stack
-          command: |
-            aws cloudformation deploy \
-              --template-file template.yml \
-              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-              --region us-east-1
+          command: >
+            aws cloudformation deploy
+            --template-file template.yml
+            --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
+            --region us-east-1
       - run:
           name: Save StackID to file
           command: echo "myStack-${CIRCLE_WORKFLOW_ID:0:5}" > stack_name.txt
-      - save_cache:
-          key: stack_name
+      - persist_to_workspace:
+          root: .
           paths:
-            - ./stack_name.txt
+            - stack_name.txt
 
   create_inventory:
     docker:
@@ -41,13 +45,16 @@ jobs:
       - checkout
       - run:
           name: Install tar utility
-          command: |
+          command: >
             yum install -y tar gzip
-      - restore_cache:
-          key: stack_name
+      - attach_workspace:
+          at: .
       - restore_variable:
-          filePath: ./stack_name.txt
+          filePath: stack_name.txt
           variableName: STACK_NAME
+      - run:
+          name: human sanity check files
+          command: ls
       - run:
           name: Human sanity check $STACK_NAME
           command: "echo $STACK_NAME"
@@ -72,10 +79,11 @@ jobs:
           name: delete aws stack if no ips in inventory
           command: aws cloudformation delete-stack --stack-name $STACK_NAME
           when: on_fail
-      - save_cache:
-          key: inventory
+      - persist_to_workspace:
+          root: .
           paths:
-            - ./inventory
+            - inventory
+            - stack_name.txt
 
 
       # - add_ssh_keys:
