@@ -54,7 +54,10 @@ jobs:
           variableName: STACK_NAME
       - run:
           name: human sanity check files
-          command: ls
+          command: cat stack_name.txt
+      - run:
+          name: Human sanity check $STACK_NAME
+          command: export STACK_NAME=$(cat stack_name.txt)
       - run:
           name: Human sanity check $STACK_NAME
           command: "echo $STACK_NAME"
