@@ -63,9 +63,7 @@ jobs:
       - run:
           name: check if there is IP in inventory
           command: "[ $(cat inventory | wc -l) != '1' ]"
-      - run:
-          name: Human sanity check on inventory
-          command: cat inventory
+      - run: 'false'
       - run:
           name: delete aws stack if no ips in inventory
           command: aws cloudformation delete-stack --stack-name $(cat stack_name.txt)
@@ -76,7 +74,7 @@ jobs:
             - inventory
             - stack_name.txt
 
-
+  # install_ansible:
       # - add_ssh_keys:
       #     fingerprints: [$AWS_SSH_FINGERPRINT]
       # - run:
