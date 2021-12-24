@@ -3,15 +3,6 @@
 version: 2.1
 
 commands:
-  delete_stack:
-    description: Delete AWS stack created in create_infrastructure job
-    parameters:
-      stackId:
-        type: string
-    steps:
-      - run:
-          name: Delete Stack
-          command: aws cloudformation delete-stack --stack-name << parameters.stackId >>
   restore_variable:
     description: Save contents of file into environment variable
     parameters:
@@ -65,10 +56,18 @@ jobs:
           command: echo "[all]" > inventory
       - run:
           name: Insert EC2 IP into inventory
-          command: aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory
+          command: >
+            aws ec2 describe-instances
+            --query 'Reservations[*].Instances[*].PublicIpAddress'
+            --filters "Name=tag-key,Values=aws:cloudformation:stack-name"
+            "Name=tag-value,Values=${STACK_NAME}"
+            --output text >> inventory
       - run:
           name: check if there is IP in inventory
           command: "[ $(cat inventory | wc -l) == '2' ]"
+      - run:
+          name: Human sanity check on inventory
+          command: cat inventory
       - run:
           name: delete aws stack if no ips in inventory
           command: aws cloudformation delete-stack --stack-name ${STACK_NAME}
